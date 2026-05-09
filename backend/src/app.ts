@@ -2,6 +2,7 @@
 // We separate this from index.ts so we can import just the app in tests
 // without starting the server. This is a standard testing pattern.
 
+import budgetsRouter from "./routes/budgets";
 import { generalLimiter } from "./middleware/rateLimiter";
 import transactionsRouter from "./routes/transactions";
 import healthRouter from "./routes/health";
@@ -68,6 +69,8 @@ app.use("/api", generalLimiter);
 app.use("/api/health", healthRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/transactions", transactionsRouter);
+app.use("/api/budgets", budgetsRouter);
+
 
 // ─── 404 Handler ─────────────────────────────────────────────────────
 // If no route matched, return a clean 404 JSON response.

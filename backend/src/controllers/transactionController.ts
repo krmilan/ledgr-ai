@@ -2,6 +2,7 @@
 // Thin by design: parse → call service → respond.
 // All logic is in transactionService.ts.
 
+import { CATEGORIES, isValidCategory } from "../types/categories";
 import { Response } from "express";
 import { AuthenticatedRequest } from "../types";
 import {
@@ -114,6 +115,15 @@ export const createTransactionHandler = async (
     });
     return;
   }
+
+  // Validation
+  if (!isValidCategory(category)) {
+  res.status(400).json({
+    success: false,
+    error: `Invalid category. Must be one of: ${CATEGORIES.join(", ")}`,
+  });
+  return;
+}
 
   const transaction = await createTransaction({
     userId,
