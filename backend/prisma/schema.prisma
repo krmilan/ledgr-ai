@@ -1,0 +1,97 @@
+// schema.prisma is the single source of truth for your database structure.
+// Prisma reads this file to:
+//   1. Generate the database tables (via `prisma migrate`)
+//   2. Generate the TypeScript client (via `prisma generate`)
+// Any change to your database MUST go through this file first.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // DATABASE_URL: connection pooler (port 6543) — used for all queries
+  // NEVER remove this line or change the variable name
+  url       = env("DATABASE_URL")
+  // DIRECT_URL: direct connection (port 5432) — used only for migrations
+  // Migrations need a direct connection because they can't run through a pooler
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Users ────────────────────────────────────────────────────────────
+// We store our own user record even though Clerk manages authentication.
+// Why? So we can use user_id as a foreign key in all other tables.
+// Clerk gives us an ID; we create our own UUID and link them via clerk_id.
+model User {
+  id        String   @id @default(uuid())
+  clerkId   String   @unique @map("clerk_id") // Clerk's user ID, must be unique
+  email     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations — Prisma uses these to generate JOIN helpers
+  transactions Transaction[]
+  budgets      Budget[]
+  aiInsights   AiInsight[]
+
+  // @@map tells Prisma the actual table name in PostgreSQL
+  // Convention: Prisma models = PascalCase, DB tables = snake_case
+  @@map("users")
+}
+
+// ─── Transactions ─────────────────────────────────────────────────────
+model Transaction {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  name          String   // e.g. "Starbucks", "Netflix", "Salary"
+  amount        Decimal  @db.Decimal(12, 2) // 12 digits total, 2 decimal places
+  category      String   // e.g. "Food", "Entertainment", "Income"
+  date          DateTime // when the transaction occurred
+  aiCategorized Boolean  @default(false) @map("ai_categorized") // did AI pick the category?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Foreign key — links this transaction to a user
+  // onDelete: Cascade means if a user is deleted, their transactions are too
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Database indexes — speeds up the most common queries
+  // Without indexes, PostgreSQL scans EVERY row to find matches (slow at scale)
+  @@index([userId])           // fast lookup: "all transactions for user X"
+  @@index([userId, date])     // fast lookup: "user X's transactions in date range"
+  @@index([userId, category]) // fast lookup: "user X's food transactions"
+  @@map("transactions")
+}
+
+// ─── Budgets ──────────────────────────────────────────────────────────
+model Budget {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  category    String   // must match a transaction category exactly
+  limitAmount Decimal  @db.Decimal(12, 2) @map("limit_amount")
+  month       Int      // 1–12
+  year        Int      // e.g. 2025
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Unique constraint: one budget per category per month per user
+  // Prevents duplicates like two "Food" budgets for January
+  @@unique([userId, category, month, year])
+  @@index([userId, month, year])
+  @@map("budgets")
+}
+
+// ─── AI Insights ──────────────────────────────────────────────────────
+model AiInsight {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  insightText String   @map("insight_text") // the AI-generated insight paragraph
+  generatedAt DateTime @default(now()) @map("generated_at")
+  month       Int
+  year        Int
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, month, year])
+  @@map("ai_insights")
+}
