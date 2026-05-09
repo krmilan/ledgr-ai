@@ -2,8 +2,10 @@
 // We separate this from index.ts so we can import just the app in tests
 // without starting the server. This is a standard testing pattern.
 
-import usersRouter from "./routes/users";
+import { generalLimiter } from "./middleware/rateLimiter";
+import transactionsRouter from "./routes/transactions";
 import healthRouter from "./routes/health";
+import usersRouter from "./routes/users";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -59,11 +61,13 @@ app.get("/health", (_req, res) => {
   });
 });
 
+app.use("/api", generalLimiter);
 // ─── Routes ──────────────────────────────────────────────────────────
 // Routes will be imported and registered here in later steps.
 // Example: app.use("/api/transactions", transactionsRouter);
 app.use("/api/health", healthRouter);
 app.use("/api/users", usersRouter);
+app.use("/api/transactions", transactionsRouter);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────
 // If no route matched, return a clean 404 JSON response.
