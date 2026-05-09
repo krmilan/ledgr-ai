@@ -2,6 +2,7 @@
 // We separate this from index.ts so we can import just the app in tests
 // without starting the server. This is a standard testing pattern.
 
+import usersRouter from "./routes/users";
 import healthRouter from "./routes/health";
 import express from "express";
 import cors from "cors";
@@ -62,6 +63,7 @@ app.get("/health", (_req, res) => {
 // Routes will be imported and registered here in later steps.
 // Example: app.use("/api/transactions", transactionsRouter);
 app.use("/api/health", healthRouter);
+app.use("/api/users", usersRouter);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────
 // If no route matched, return a clean 404 JSON response.
