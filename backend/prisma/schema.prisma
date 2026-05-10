@@ -9,13 +9,9 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  // DATABASE_URL: connection pooler (port 6543) — used for all queries
-  // NEVER remove this line or change the variable name
-  url       = env("DATABASE_URL")
-  // DIRECT_URL: direct connection (port 5432) — used only for migrations
-  // Migrations need a direct connection because they can't run through a pooler
-  directUrl = env("DIRECT_URL")
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  directUrl         = env("DIRECT_URL")
 }
 
 // ─── Users ────────────────────────────────────────────────────────────

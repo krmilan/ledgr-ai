@@ -1,5 +1,11 @@
+// budgetController.ts
+// HTTP layer for budget endpoints.
+// Same pattern as transactionController:
+// req.userId = Clerk ID → resolveDbUserId() → PostgreSQL UUID
+
 import { Response } from "express";
 import { AuthenticatedRequest } from "../types";
+import { getUserByClerkId } from "../services/userService";
 import {
   getBudgetSummary,
   upsertBudget,
@@ -7,52 +13,59 @@ import {
   deleteBudget,
 } from "../services/budgetService";
 
-// GET /api/budgets?month=5&year=2025
-// Returns all budgets with actual spending merged in
+// ─── Helper ───────────────────────────────────────────────────────────
+
+const resolveDbUserId = async (clerkId: string): Promise<string | null> => {
+  const user = await getUserByClerkId(clerkId);
+  return user?.id ?? null;
+};
+
+// ─── Controllers ──────────────────────────────────────────────────────
+
+// GET /api/budgets?month=5&year=2026
 export const listBudgets = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  const userId = req.userId!;
+  const dbUserId = await resolveDbUserId(req.userId!);
+  if (!dbUserId) {
+    res.status(404).json({ success: false, error: "User not found" });
+    return;
+  }
 
-  // Default to current month/year if not specified
   const now = new Date();
   const month = parseInt(req.query.month as string) || now.getMonth() + 1;
   const year = parseInt(req.query.year as string) || now.getFullYear();
 
-  // Validate month range
   if (month < 1 || month > 12) {
     res.status(400).json({ success: false, error: "Month must be 1–12" });
     return;
   }
 
-  const summary = await getBudgetSummary(userId, month, year);
+  const summary = await getBudgetSummary(dbUserId, month, year);
 
-  res.status(200).json({
-    success: true,
-    data: summary,
-  });
+  res.status(200).json({ success: true, data: summary });
 };
 
 // POST /api/budgets
-// Creates or updates a budget for a category/month/year (upsert)
 export const createBudgetHandler = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  const userId = req.userId!;
+  const dbUserId = await resolveDbUserId(req.userId!);
+  if (!dbUserId) {
+    res.status(404).json({ success: false, error: "User not found" });
+    return;
+  }
+
   const { category, limitAmount, month, year } = req.body;
 
-  // Type coercion — body values might be strings
   const parsedLimit = parseFloat(limitAmount);
   const parsedMonth = parseInt(month);
   const parsedYear = parseInt(year);
 
   if (isNaN(parsedLimit) || parsedLimit <= 0) {
-    res.status(400).json({
-      success: false,
-      error: "limitAmount must be a positive number",
-    });
+    res.status(400).json({ success: false, error: "limitAmount must be a positive number" });
     return;
   }
 
@@ -67,7 +80,7 @@ export const createBudgetHandler = async (
   }
 
   const budget = await upsertBudget({
-    userId,
+    userId: dbUserId,
     category,
     limitAmount: parsedLimit,
     month: parsedMonth,
@@ -86,15 +99,18 @@ export const updateBudgetHandler = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  const userId = req.userId!;
-  const { id } = req.params;
-  const { limitAmount, category } = req.body;
+  const dbUserId = await resolveDbUserId(req.userId!);
+  if (!dbUserId) {
+    res.status(404).json({ success: false, error: "User not found" });
+    return;
+  }
 
+  const { limitAmount, category } = req.body;
   const updates: { limitAmount?: number; category?: string } = {};
   if (limitAmount !== undefined) updates.limitAmount = parseFloat(limitAmount);
   if (category !== undefined) updates.category = category;
 
-  const budget = await updateBudget(id, userId, updates);
+  const budget = await updateBudget(req.params.id, dbUserId, updates);
 
   if (!budget) {
     res.status(404).json({ success: false, error: "Budget not found" });
@@ -113,18 +129,18 @@ export const deleteBudgetHandler = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  const userId = req.userId!;
-  const { id } = req.params;
+  const dbUserId = await resolveDbUserId(req.userId!);
+  if (!dbUserId) {
+    res.status(404).json({ success: false, error: "User not found" });
+    return;
+  }
 
-  const result = await deleteBudget(id, userId);
+  const result = await deleteBudget(req.params.id, dbUserId);
 
   if (!result) {
     res.status(404).json({ success: false, error: "Budget not found" });
     return;
   }
 
-  res.status(200).json({
-    success: true,
-    message: "Budget deleted successfully",
-  });
+  res.status(200).json({ success: true, message: "Budget deleted successfully" });
 };

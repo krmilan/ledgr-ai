@@ -1,35 +1,24 @@
-// userController.ts — Handles the HTTP layer for user-related requests.
-//
-// Controllers are thin. They:
-//   1. Read from req (params, body, headers)
-//   2. Call a service function
-//   3. Send a response
-//
-// Controllers never contain business logic or database queries.
-// That lives in services.
+// userController.ts
+// Handles user sync and profile endpoints.
+// req.userId = Clerk ID (e.g. "user_2abc...")
+// user.id    = our PostgreSQL UUID (used as FK everywhere)
 
 import { Response } from "express";
 import { AuthenticatedRequest } from "../types";
-import { findOrCreateUser } from "../services/userService";
+import { findOrCreateUser, getUserByClerkId } from "../services/userService";
 
 // POST /api/users/sync
-// Called by the frontend after login to ensure a DB record exists.
-// The Clerk userId comes from req.userId (attached by requireAuth middleware).
+// Called by the frontend after every login.
+// Creates a DB record for new users, updates email for existing ones.
 export const syncUser = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  // req.userId is guaranteed to exist here because requireAuth runs first
   const clerkId = req.userId!;
-
-  // req.body contains the email sent from the frontend
   const { email } = req.body;
 
   if (!email) {
-    res.status(400).json({
-      success: false,
-      error: "Email is required",
-    });
+    res.status(400).json({ success: false, error: "Email is required" });
     return;
   }
 
@@ -38,25 +27,23 @@ export const syncUser = async (
   res.status(200).json({
     success: true,
     data: { user },
-    message: user ? "User synced successfully" : "User created",
+    message: "User synced successfully",
   });
 };
 
 // GET /api/users/me
-// Returns the current user's profile from your database.
+// Returns the current user's DB record.
 export const getMe = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   const clerkId = req.userId!;
+  const user = await getUserByClerkId(clerkId);
 
-  const user = await findOrCreateUser({
-    clerkId,
-    email: "", // email will not be updated (upsert update: {} in a variation)
-  });
+  if (!user) {
+    res.status(404).json({ success: false, error: "User not found" });
+    return;
+  }
 
-  res.status(200).json({
-    success: true,
-    data: { user },
-  });
+  res.status(200).json({ success: true, data: { user } });
 };

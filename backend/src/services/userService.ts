@@ -1,9 +1,7 @@
-// userService.ts — Business logic for user operations.
-//
-// Services contain logic that doesn't belong in controllers.
-// Controllers handle HTTP. Services handle the actual work.
-// This separation means you can call userService from multiple
-// controllers, or from a background job, without duplicating code.
+// userService.ts
+// Handles all database operations for users.
+// Key concept: clerk_id is Clerk's identifier, id is our UUID.
+// Every other table uses our UUID (id) as the foreign key.
 
 import { prisma } from "./prisma";
 
@@ -12,24 +10,19 @@ interface SyncUserParams {
   email: string;
 }
 
-// findOrCreateUser implements the "upsert" pattern:
-// - If a user with this clerkId exists → return them
-// - If not → create them and return the new record
-//
-// This is called every time a user loads the dashboard.
-// It's safe to call multiple times — idempotent.
+// findOrCreateUser — upsert pattern
+// Safe to call multiple times — always returns the user record
 export const findOrCreateUser = async ({ clerkId, email }: SyncUserParams) => {
-  // Prisma's upsert: try to find by clerkId, create if not found
   const user = await prisma.user.upsert({
-    where: { clerkId },          // look up by Clerk's ID
-    update: { email },           // if found, update email (in case it changed)
-    create: { clerkId, email },  // if not found, create a new record
+    where: { clerkId },
+    update: { email },
+    create: { clerkId, email },
   });
-
   return user;
 };
 
-// getUserByClerkId — simple lookup used in middleware and controllers
+// getUserByClerkId — lookup by Clerk's ID string (e.g. "user_2abc...")
+// Returns the full user record including our UUID (user.id)
 export const getUserByClerkId = async (clerkId: string) => {
   return prisma.user.findUnique({
     where: { clerkId },
