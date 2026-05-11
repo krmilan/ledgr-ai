@@ -1,9 +1,9 @@
 // budgetService.ts
-// All database logic for budgets.
-// userId parameter is always our PostgreSQL UUID, never the Clerk ID.
+// Fixed: explicit Budget type on map callback (TS7006)
+// Fixed: use new Decimal() from @prisma/client instead of Prisma.Decimal (TS2339)
 
 import { prisma } from "./prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, Budget } from "@prisma/client";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -34,6 +34,8 @@ export interface BudgetWithSpend {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────
+
+const toDecimal = (value: number) => new Prisma.Decimal(value);
 
 const getBudgetStatus = (percentUsed: number): "good" | "warning" | "over" => {
   if (percentUsed > 100) return "over";
@@ -74,13 +76,13 @@ export const getBudgetsWithSpend = async (
     spendingMap[item.category] = Math.abs(Number(item._sum.amount ?? 0));
   }
 
-  return budgets.map((budget) => {
+  // Explicit type annotation on the map callback fixes TS7006
+  return budgets.map((budget: Budget): BudgetWithSpend => {
     const limitAmount = Number(budget.limitAmount);
     const spent = spendingMap[budget.category] ?? 0;
     const remaining = Math.max(0, limitAmount - spent);
-    const percentUsed = limitAmount > 0
-      ? Math.round((spent / limitAmount) * 100)
-      : 0;
+    const percentUsed =
+      limitAmount > 0 ? Math.round((spent / limitAmount) * 100) : 0;
 
     return {
       id: budget.id,
@@ -105,12 +107,14 @@ export const upsertBudget = async ({
   year,
 }: CreateBudgetParams) => {
   return prisma.budget.upsert({
-    where: { userId_category_month_year: { userId, category, month, year } },
-    update: { limitAmount: new Prisma.Decimal(limitAmount) },
+    where: {
+      userId_category_month_year: { userId, category, month, year },
+    },
+    update: { limitAmount: toDecimal(limitAmount) },
     create: {
       userId,
       category: category.trim(),
-      limitAmount: new Prisma.Decimal(limitAmount),
+      limitAmount: toDecimal(limitAmount),
       month,
       year,
     },
@@ -127,7 +131,7 @@ export const updateBudget = async (
 
   const data: Prisma.BudgetUpdateInput = {};
   if (updates.limitAmount !== undefined) {
-    data.limitAmount = new Prisma.Decimal(updates.limitAmount);
+    data.limitAmount = toDecimal(updates.limitAmount);
   }
   if (updates.category !== undefined) {
     data.category = updates.category.trim();
@@ -150,7 +154,10 @@ export const getBudgetSummary = async (
 ) => {
   const budgetsWithSpend = await getBudgetsWithSpend(userId, month, year);
 
-  const totalBudgeted = budgetsWithSpend.reduce((sum, b) => sum + b.limitAmount, 0);
+  const totalBudgeted = budgetsWithSpend.reduce(
+    (sum, b) => sum + b.limitAmount,
+    0
+  );
   const totalSpent = budgetsWithSpend.reduce((sum, b) => sum + b.spent, 0);
 
   const statusCounts = { good: 0, warning: 0, over: 0 };
@@ -161,7 +168,9 @@ export const getBudgetSummary = async (
     totalSpent,
     totalRemaining: Math.max(0, totalBudgeted - totalSpent),
     overallPercentUsed:
-      totalBudgeted > 0 ? Math.round((totalSpent / totalBudgeted) * 100) : 0,
+      totalBudgeted > 0
+        ? Math.round((totalSpent / totalBudgeted) * 100)
+        : 0,
     budgetCount: budgetsWithSpend.length,
     statusCounts,
     budgets: budgetsWithSpend,

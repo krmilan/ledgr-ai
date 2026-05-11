@@ -1,10 +1,13 @@
 // transactionService.ts
 // All database logic for transactions.
-// IMPORTANT: every function receives userId which is our PostgreSQL UUID,
-// NOT the Clerk ID. The controller resolves Clerk ID → UUID before calling here.
+// userId is always our PostgreSQL UUID, never the Clerk ID.
 
 import { prisma } from "./prisma";
 import { Prisma } from "@prisma/client";
+
+// ─── Helper ───────────────────────────────────────────────────────────
+
+const toDecimal = (value: number) => new Prisma.Decimal(value);
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -51,8 +54,8 @@ export const getTransactions = async ({
 
   if (startDate || endDate) {
     where.date = {};
-    if (startDate) where.date.gte = new Date(startDate);
-    if (endDate) where.date.lte = new Date(endDate);
+    if (startDate) (where.date as Prisma.DateTimeFilter).gte = new Date(startDate);
+    if (endDate)   (where.date as Prisma.DateTimeFilter).lte = new Date(endDate);
   }
 
   if (search) {
@@ -97,7 +100,7 @@ export const createTransaction = async ({
     data: {
       userId,
       name: name.trim(),
-      amount: new Prisma.Decimal(amount),
+      amount: toDecimal(amount),
       category: category.trim(),
       date: new Date(date),
       aiCategorized,
@@ -114,10 +117,10 @@ export const updateTransaction = async (
   if (!existing) return null;
 
   const data: Prisma.TransactionUpdateInput = {};
-  if (updates.name !== undefined) data.name = updates.name.trim();
-  if (updates.amount !== undefined) data.amount = new Prisma.Decimal(updates.amount);
+  if (updates.name !== undefined)     data.name     = updates.name.trim();
+  if (updates.amount !== undefined)   data.amount   = toDecimal(updates.amount);
   if (updates.category !== undefined) data.category = updates.category.trim();
-  if (updates.date !== undefined) data.date = new Date(updates.date);
+  if (updates.date !== undefined)     data.date     = new Date(updates.date);
 
   return prisma.transaction.update({ where: { id }, data });
 };
@@ -137,9 +140,8 @@ export const getTransactionSummary = async (
   const where: Prisma.TransactionWhereInput = { userId };
 
   if (month && year) {
-    // Use Date.UTC to avoid local timezone shifting the range
     const startOfMonth = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
-    const endOfMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+    const endOfMonth   = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
     where.date = { gte: startOfMonth, lte: endOfMonth };
   }
 
@@ -148,19 +150,17 @@ export const getTransactionSummary = async (
     select: { amount: true, category: true },
   });
 
-  let totalIncome = 0;
+  let totalIncome   = 0;
   let totalExpenses = 0;
   const categoryTotals: Record<string, number> = {};
 
   for (const tx of transactions) {
     const amount = Number(tx.amount);
-
     if (amount >= 0) {
       totalIncome += amount;
     } else {
       totalExpenses += Math.abs(amount);
     }
-
     if (!categoryTotals[tx.category]) categoryTotals[tx.category] = 0;
     categoryTotals[tx.category] += Math.abs(amount);
   }
