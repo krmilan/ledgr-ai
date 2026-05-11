@@ -91,7 +91,7 @@ function SpendChart({ data }: { data: TransactionSummary["byCategory"] }) {
           contentStyle={{ backgroundColor: "#1a1a24", border: "1px solid #1e1e2e", borderRadius: "8px" }}
           labelStyle={{ color: "#9ca3af", fontSize: "12px" }}
           itemStyle={{ color: "white", fontSize: "13px", fontWeight: 600 }}
-          formatter={(v: number) => [`₹${v.toLocaleString("en-IN")}`, "Spent"]}
+          formatter={(v: unknown) => [`₹${Number(v).toLocaleString("en-IN")}`, "Spent"]}
           cursor={{ fill: "rgba(255,255,255,0.03)" }}
         />
         <Bar dataKey="total" radius={[4, 4, 0, 0]}>
