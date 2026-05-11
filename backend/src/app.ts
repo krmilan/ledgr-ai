@@ -23,24 +23,28 @@ const app = express();
 // Without this, browsers block requests from your frontend (different domain) to your backend.
 
 const allowedOrigins = [
-  process.env.FRONTEND_URL || "http://localhost:3000",
-  "http://localhost:3000", // Always allow local dev
-];
+  "http://localhost:3000",
+  process.env.FRONTEND_URL,
+].filter(Boolean) as string[];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, Postman, server-to-server)
+      // Allow no-origin requests (Postman, curl, server-to-server)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS policy: origin ${origin} not allowed`));
+      // Allow exact matches
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+
+      // Allow ANY vercel.app subdomain for your project
+      if (origin.includes("milan-ray-s-projects.vercel.app")) {
+        return callback(null, true);
       }
+
+      callback(new Error(`CORS blocked: ${origin}`));
     },
-    credentials: true, // Allow cookies and Authorization headers
-    allowedHeaders: ["Content-Type", "Authorization"], // CRITICAL: must include Authorization
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   })
 );
