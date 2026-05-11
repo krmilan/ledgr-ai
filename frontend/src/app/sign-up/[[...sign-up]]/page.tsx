@@ -12,17 +12,14 @@ export default function SignUpPage() {
     }}>
       <SignUp
         appearance={{
-          baseTheme: dark,
-          variables: {
-            colorBackground: "#111118",
-            colorInputBackground: "#1a1a24",
-            colorInputText: "#ffffff",
-            colorText: "#ffffff",
-            colorTextSecondary: "#9ca3af",
-            colorPrimary: "#10b981",
-            colorDanger: "#ef4444",
-            borderRadius: "0.5rem",
-          },
+        ...dark,
+              variables: {
+                ...dark.variables,
+                colorBackground: "#111118",
+                colorInput: "#ffffff",
+                colorPrimary: "#10b981",
+                borderRadius: "0.5rem",
+              },
           elements: {
             card: {
               border: "1px solid #1e1e2e",

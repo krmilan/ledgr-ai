@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { UserProfile } from "@clerk/nextjs";
-import { dark } from "@clerk/ui/themes";
+import { UserProfile } from "@clerk/nextjs";import { dark } from "@clerk/ui/themes";
 import {
   User, Mail, Calendar, TrendingUp,
   Receipt, PieChart, Shield, ChevronRight,
@@ -155,7 +154,16 @@ export default function ProfilePage() {
             <button onClick={() => setShowClerkProfile(false)} style={{ position: "absolute", top: "12px", right: "12px", zIndex: 10, backgroundColor: "#1a1a24", border: "1px solid #1e1e2e", borderRadius: "6px", color: "#9ca3af", cursor: "pointer", padding: "6px 10px", fontSize: "12px" }}>
               ✕ Close
             </button>
-            <UserProfile appearance={{ baseTheme: dark, variables: { colorBackground: "#111118", colorInputBackground: "#1a1a24", colorInputText: "#ffffff", colorText: "#ffffff", colorTextSecondary: "#9ca3af", colorPrimary: "#10b981", borderRadius: "0.5rem" }, elements: { card: { border: "1px solid #1e1e2e" }, formButtonPrimary: { backgroundColor: "#10b981" }, footerActionLink: { color: "#10b981" } } }} />
+            <UserProfile appearance={{
+              ...dark,
+              variables: {
+                ...dark.variables,
+                colorBackground: "#111118",
+                colorInput: "#ffffff",
+                colorPrimary: "#10b981",
+                borderRadius: "0.5rem",
+              },
+            }} />
           </div>
         </div>
       )}
