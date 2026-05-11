@@ -110,7 +110,7 @@ export const updateBudgetHandler = async (
   if (limitAmount !== undefined) updates.limitAmount = parseFloat(limitAmount);
   if (category !== undefined) updates.category = category;
 
-  const budget = await updateBudget(req.params.id, dbUserId, updates);
+  const budget = await updateBudget(req.params.id as string, dbUserId, updates);
 
   if (!budget) {
     res.status(404).json({ success: false, error: "Budget not found" });
@@ -135,7 +135,7 @@ export const deleteBudgetHandler = async (
     return;
   }
 
-  const result = await deleteBudget(req.params.id, dbUserId);
+  const result = await deleteBudget(req.params.id as string, dbUserId);
 
   if (!result) {
     res.status(404).json({ success: false, error: "Budget not found" });

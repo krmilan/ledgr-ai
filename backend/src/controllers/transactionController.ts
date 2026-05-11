@@ -93,7 +93,8 @@ export const getTransaction = async (
     return;
   }
 
-  const transaction = await getTransactionById(req.params.id, dbUserId);
+  const transactionId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const transaction = await getTransactionById(transactionId, dbUserId);
 
   if (!transaction) {
     res.status(404).json({ success: false, error: "Transaction not found" });
@@ -186,7 +187,8 @@ export const updateTransactionHandler = async (
   if (category !== undefined) updates.category = category;
   if (date !== undefined) updates.date = date;
 
-  const transaction = await updateTransaction(req.params.id, dbUserId, updates);
+  const transactionId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const transaction = await updateTransaction(transactionId, dbUserId, updates);
 
   if (!transaction) {
     res.status(404).json({ success: false, error: "Transaction not found" });
@@ -213,7 +215,8 @@ export const deleteTransactionHandler = async (
     return;
   }
 
-  const result = await deleteTransaction(req.params.id, dbUserId);
+  const transactionId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const result = await deleteTransaction(transactionId, dbUserId);
 
   if (!result) {
     res.status(404).json({ success: false, error: "Transaction not found" });
