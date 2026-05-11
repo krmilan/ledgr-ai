@@ -1,14 +1,7 @@
 // transactionService.ts
-// Fixed: import types directly from @prisma/client instead of Prisma namespace
+// Avoids all Prisma namespace types — compatible with Prisma v5 on Render
 
 import { prisma } from "./prisma";
-import { Prisma } from "@prisma/client";
-
-// ─── Helper ───────────────────────────────────────────────────────────
-
-const toDecimal = (value: number) => new Prisma.Decimal(value);
-
-// ─── Types ────────────────────────────────────────────────────────────
 
 export interface GetTransactionsParams {
   userId: string;
@@ -36,8 +29,6 @@ export interface UpdateTransactionParams {
   date?: string;
 }
 
-// ─── Service Functions ────────────────────────────────────────────────
-
 export const getTransactions = async ({
   userId,
   page = 1,
@@ -47,25 +38,16 @@ export const getTransactions = async ({
   endDate,
   search,
 }: GetTransactionsParams) => {
-  // Use a plain object with explicit typing instead of Prisma.TransactionWhereInput
-  const where: {
-    userId: string;
-    category?: string;
-    date?: { gte?: Date; lte?: Date };
-    name?: { contains: string; mode: "insensitive" };
-  } = { userId };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = { userId };
 
   if (category) where.category = category;
-
   if (startDate || endDate) {
     where.date = {};
     if (startDate) where.date.gte = new Date(startDate);
     if (endDate)   where.date.lte = new Date(endDate);
   }
-
-  if (search) {
-    where.name = { contains: search, mode: "insensitive" };
-  }
+  if (search) where.name = { contains: search, mode: "insensitive" };
 
   const [transactions, total] = await Promise.all([
     prisma.transaction.findMany({
@@ -105,7 +87,8 @@ export const createTransaction = async ({
     data: {
       userId,
       name: name.trim(),
-      amount: toDecimal(amount),
+      // Pass amount as string — Prisma accepts string for Decimal fields
+      amount: amount.toString(),
       category: category.trim(),
       date: new Date(date),
       aiCategorized,
@@ -121,17 +104,12 @@ export const updateTransaction = async (
   const existing = await getTransactionById(id, userId);
   if (!existing) return null;
 
-  const data: {
-    name?: string;
-    amount?: Prisma.Decimal;
-    category?: string;
-    date?: Date;
-  } = {};
-
-  if (updates.name !== undefined)     data.name     = updates.name.trim();
-  if (updates.amount !== undefined)   data.amount   = toDecimal(updates.amount);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any = {};
+  if (updates.name     !== undefined) data.name     = updates.name.trim();
+  if (updates.amount   !== undefined) data.amount   = updates.amount.toString();
   if (updates.category !== undefined) data.category = updates.category.trim();
-  if (updates.date !== undefined)     data.date     = new Date(updates.date);
+  if (updates.date     !== undefined) data.date     = new Date(updates.date);
 
   return prisma.transaction.update({ where: { id }, data });
 };
@@ -148,10 +126,8 @@ export const getTransactionSummary = async (
   month?: number,
   year?: number
 ) => {
-  const where: {
-    userId: string;
-    date?: { gte: Date; lte: Date };
-  } = { userId };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = { userId };
 
   if (month && year) {
     where.date = {

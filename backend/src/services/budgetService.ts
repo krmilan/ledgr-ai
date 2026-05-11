@@ -1,14 +1,7 @@
 // budgetService.ts
-// Fixed: avoid Prisma namespace types that don't resolve on Render
+// Avoids all Prisma namespace types — compatible with Prisma v5 on Render
 
 import { prisma } from "./prisma";
-import { Prisma, Budget } from "@prisma/client";
-
-// ─── Helper ───────────────────────────────────────────────────────────
-
-const toDecimal = (value: number) => new Prisma.Decimal(value);
-
-// ─── Types ────────────────────────────────────────────────────────────
 
 export interface CreateBudgetParams {
   userId: string;
@@ -36,15 +29,11 @@ export interface BudgetWithSpend {
   year: number;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────
-
-const getBudgetStatus = (percentUsed: number): "good" | "warning" | "over" => {
-  if (percentUsed > 100) return "over";
-  if (percentUsed >= 75) return "warning";
+const getBudgetStatus = (pct: number): "good" | "warning" | "over" => {
+  if (pct > 100) return "over";
+  if (pct >= 75) return "warning";
   return "good";
 };
-
-// ─── Service Functions ─────────────────────────────────────────────────
 
 export const getBudgetsWithSpend = async (
   userId: string,
@@ -66,7 +55,8 @@ export const getBudgetsWithSpend = async (
     where: {
       userId,
       date: { gte: startOfMonth, lte: endOfMonth },
-      amount: { lt: 0 },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      amount: { lt: 0 } as any,
     },
     _sum: { amount: true },
   });
@@ -76,8 +66,8 @@ export const getBudgetsWithSpend = async (
     spendingMap[item.category] = Math.abs(Number(item._sum.amount ?? 0));
   }
 
-  // Explicit Budget type on callback fixes TS7006
-  return budgets.map((budget: Budget): BudgetWithSpend => {
+  // Use index signature instead of Budget type import
+  return budgets.map((budget): BudgetWithSpend => {
     const limitAmount = Number(budget.limitAmount);
     const spent       = spendingMap[budget.category] ?? 0;
     const remaining   = Math.max(0, limitAmount - spent);
@@ -111,11 +101,12 @@ export const upsertBudget = async ({
     where: {
       userId_category_month_year: { userId, category, month, year },
     },
-    update: { limitAmount: toDecimal(limitAmount) },
+    update: { limitAmount: limitAmount.toString() },
     create: {
       userId,
       category: category.trim(),
-      limitAmount: toDecimal(limitAmount),
+      // Pass as string — Prisma accepts string for Decimal fields
+      limitAmount: limitAmount.toString(),
       month,
       year,
     },
@@ -130,12 +121,9 @@ export const updateBudget = async (
   const existing = await prisma.budget.findFirst({ where: { id, userId } });
   if (!existing) return null;
 
-  const data: {
-    limitAmount?: Prisma.Decimal;
-    category?: string;
-  } = {};
-
-  if (updates.limitAmount !== undefined) data.limitAmount = toDecimal(updates.limitAmount);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any = {};
+  if (updates.limitAmount !== undefined) data.limitAmount = updates.limitAmount.toString();
   if (updates.category    !== undefined) data.category    = updates.category.trim();
 
   return prisma.budget.update({ where: { id }, data });
@@ -155,8 +143,8 @@ export const getBudgetSummary = async (
 ) => {
   const budgetsWithSpend = await getBudgetsWithSpend(userId, month, year);
 
-  const totalBudgeted = budgetsWithSpend.reduce((sum, b) => sum + b.limitAmount, 0);
-  const totalSpent    = budgetsWithSpend.reduce((sum, b) => sum + b.spent,       0);
+  const totalBudgeted = budgetsWithSpend.reduce((s, b) => s + b.limitAmount, 0);
+  const totalSpent    = budgetsWithSpend.reduce((s, b) => s + b.spent, 0);
 
   const statusCounts = { good: 0, warning: 0, over: 0 };
   for (const b of budgetsWithSpend) statusCounts[b.status]++;
