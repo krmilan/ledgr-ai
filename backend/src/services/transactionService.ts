@@ -1,6 +1,5 @@
 // transactionService.ts
-// All database logic for transactions.
-// userId is always our PostgreSQL UUID, never the Clerk ID.
+// Fixed: import types directly from @prisma/client instead of Prisma namespace
 
 import { prisma } from "./prisma";
 import { Prisma } from "@prisma/client";
@@ -48,14 +47,20 @@ export const getTransactions = async ({
   endDate,
   search,
 }: GetTransactionsParams) => {
-  const where: Prisma.TransactionWhereInput = { userId };
+  // Use a plain object with explicit typing instead of Prisma.TransactionWhereInput
+  const where: {
+    userId: string;
+    category?: string;
+    date?: { gte?: Date; lte?: Date };
+    name?: { contains: string; mode: "insensitive" };
+  } = { userId };
 
   if (category) where.category = category;
 
   if (startDate || endDate) {
     where.date = {};
-    if (startDate) (where.date as Prisma.DateTimeFilter).gte = new Date(startDate);
-    if (endDate)   (where.date as Prisma.DateTimeFilter).lte = new Date(endDate);
+    if (startDate) where.date.gte = new Date(startDate);
+    if (endDate)   where.date.lte = new Date(endDate);
   }
 
   if (search) {
@@ -116,7 +121,13 @@ export const updateTransaction = async (
   const existing = await getTransactionById(id, userId);
   if (!existing) return null;
 
-  const data: Prisma.TransactionUpdateInput = {};
+  const data: {
+    name?: string;
+    amount?: Prisma.Decimal;
+    category?: string;
+    date?: Date;
+  } = {};
+
   if (updates.name !== undefined)     data.name     = updates.name.trim();
   if (updates.amount !== undefined)   data.amount   = toDecimal(updates.amount);
   if (updates.category !== undefined) data.category = updates.category.trim();
@@ -137,12 +148,16 @@ export const getTransactionSummary = async (
   month?: number,
   year?: number
 ) => {
-  const where: Prisma.TransactionWhereInput = { userId };
+  const where: {
+    userId: string;
+    date?: { gte: Date; lte: Date };
+  } = { userId };
 
   if (month && year) {
-    const startOfMonth = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
-    const endOfMonth   = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
-    where.date = { gte: startOfMonth, lte: endOfMonth };
+    where.date = {
+      gte: new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0)),
+      lte: new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)),
+    };
   }
 
   const transactions = await prisma.transaction.findMany({

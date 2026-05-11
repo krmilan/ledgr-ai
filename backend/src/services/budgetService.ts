@@ -1,9 +1,12 @@
 // budgetService.ts
-// Fixed: explicit Budget type on map callback (TS7006)
-// Fixed: use new Decimal() from @prisma/client instead of Prisma.Decimal (TS2339)
+// Fixed: avoid Prisma namespace types that don't resolve on Render
 
 import { prisma } from "./prisma";
 import { Prisma, Budget } from "@prisma/client";
+
+// ─── Helper ───────────────────────────────────────────────────────────
+
+const toDecimal = (value: number) => new Prisma.Decimal(value);
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -35,8 +38,6 @@ export interface BudgetWithSpend {
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 
-const toDecimal = (value: number) => new Prisma.Decimal(value);
-
 const getBudgetStatus = (percentUsed: number): "good" | "warning" | "over" => {
   if (percentUsed > 100) return "over";
   if (percentUsed >= 75) return "warning";
@@ -57,9 +58,8 @@ export const getBudgetsWithSpend = async (
 
   if (budgets.length === 0) return [];
 
-  // Use Date.UTC to avoid timezone shifting the range
   const startOfMonth = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
-  const endOfMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+  const endOfMonth   = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
 
   const spending = await prisma.transaction.groupBy({
     by: ["category"],
@@ -76,25 +76,26 @@ export const getBudgetsWithSpend = async (
     spendingMap[item.category] = Math.abs(Number(item._sum.amount ?? 0));
   }
 
-  // Explicit type annotation on the map callback fixes TS7006
+  // Explicit Budget type on callback fixes TS7006
   return budgets.map((budget: Budget): BudgetWithSpend => {
     const limitAmount = Number(budget.limitAmount);
-    const spent = spendingMap[budget.category] ?? 0;
-    const remaining = Math.max(0, limitAmount - spent);
-    const percentUsed =
-      limitAmount > 0 ? Math.round((spent / limitAmount) * 100) : 0;
+    const spent       = spendingMap[budget.category] ?? 0;
+    const remaining   = Math.max(0, limitAmount - spent);
+    const percentUsed = limitAmount > 0
+      ? Math.round((spent / limitAmount) * 100)
+      : 0;
 
     return {
-      id: budget.id,
-      category: budget.category,
+      id:           budget.id,
+      category:     budget.category,
       limitAmount,
       spent,
       remaining,
       percentUsed,
       isOverBudget: spent > limitAmount,
-      status: getBudgetStatus(percentUsed),
-      month: budget.month,
-      year: budget.year,
+      status:       getBudgetStatus(percentUsed),
+      month:        budget.month,
+      year:         budget.year,
     };
   });
 };
@@ -129,13 +130,13 @@ export const updateBudget = async (
   const existing = await prisma.budget.findFirst({ where: { id, userId } });
   if (!existing) return null;
 
-  const data: Prisma.BudgetUpdateInput = {};
-  if (updates.limitAmount !== undefined) {
-    data.limitAmount = toDecimal(updates.limitAmount);
-  }
-  if (updates.category !== undefined) {
-    data.category = updates.category.trim();
-  }
+  const data: {
+    limitAmount?: Prisma.Decimal;
+    category?: string;
+  } = {};
+
+  if (updates.limitAmount !== undefined) data.limitAmount = toDecimal(updates.limitAmount);
+  if (updates.category    !== undefined) data.category    = updates.category.trim();
 
   return prisma.budget.update({ where: { id }, data });
 };
@@ -154,11 +155,8 @@ export const getBudgetSummary = async (
 ) => {
   const budgetsWithSpend = await getBudgetsWithSpend(userId, month, year);
 
-  const totalBudgeted = budgetsWithSpend.reduce(
-    (sum, b) => sum + b.limitAmount,
-    0
-  );
-  const totalSpent = budgetsWithSpend.reduce((sum, b) => sum + b.spent, 0);
+  const totalBudgeted = budgetsWithSpend.reduce((sum, b) => sum + b.limitAmount, 0);
+  const totalSpent    = budgetsWithSpend.reduce((sum, b) => sum + b.spent,       0);
 
   const statusCounts = { good: 0, warning: 0, over: 0 };
   for (const b of budgetsWithSpend) statusCounts[b.status]++;
@@ -166,13 +164,12 @@ export const getBudgetSummary = async (
   return {
     totalBudgeted,
     totalSpent,
-    totalRemaining: Math.max(0, totalBudgeted - totalSpent),
-    overallPercentUsed:
-      totalBudgeted > 0
-        ? Math.round((totalSpent / totalBudgeted) * 100)
-        : 0,
-    budgetCount: budgetsWithSpend.length,
+    totalRemaining:     Math.max(0, totalBudgeted - totalSpent),
+    overallPercentUsed: totalBudgeted > 0
+      ? Math.round((totalSpent / totalBudgeted) * 100)
+      : 0,
+    budgetCount:  budgetsWithSpend.length,
     statusCounts,
-    budgets: budgetsWithSpend,
+    budgets:      budgetsWithSpend,
   };
 };
