@@ -8,33 +8,89 @@
   --bg-tertiary: #1a1a24;
   --border: #1e1e2e;
   --emerald: #10b981;
-  --text-primary: #ffffff;
-  --text-secondary: #9ca3af;
-  --text-tertiary: #6b7280;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   background-color: var(--bg-primary);
-  color: var(--text-primary);
+  color: #ffffff;
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Dark scrollbar */
 ::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: var(--bg-secondary); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--emerald); }
+::-webkit-scrollbar-track { background: #111118; }
+::-webkit-scrollbar-thumb { background: #1e1e2e; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #10b981; }
 
 /* Dark date input */
-input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
 input[type="date"] { color-scheme: dark; }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
 
-/* Recharts dark tooltip */
+/* Recharts */
 .recharts-default-tooltip {
   background-color: #1a1a24 !important;
   border: 1px solid #1e1e2e !important;
   border-radius: 8px !important;
 }
+
+/* ── Responsive grid utilities ── */
+
+/* 4-col → 2-col → 1-col */
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+/* 2-col chart+panel → 1-col */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
+/* 3-col tips → 1-col */
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+/* Budget cards auto-fill */
+.grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 1024px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .grid-auto { grid-template-columns: 1fr; }
+}
+
+/* Table scroll on mobile */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide columns on mobile */
+@media (max-width: 640px) {
+  .hide-mobile { display: none !important; }
+  .col-mobile-full { grid-column: 1 / -1 !important; }
+}
+
+/* Animations */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
