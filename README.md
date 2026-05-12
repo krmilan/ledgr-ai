@@ -16,7 +16,7 @@
 |-----------|-------------|---------|
 | ![Dashboard](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/dashboard.png) | ![Transactions](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/transactions.png) | ![Budgets](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/budgets.png) |
 
-| AI Insights | Profile | Mobile |
+| AI Insights | Profile | Login-Signup |
 |-------------|---------|--------|
 | ![AI Insights](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/ai-insights.png) | ![Profile](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/profile.png) | ![Mobile](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/login-signup.png) |
 
@@ -305,7 +305,7 @@ frontend/src/
 
 ## 🧑‍💻 Author
 
-**Milan Ray** — [@YOUR_GITHUB](https://github.com/krmilan)
+**Milan Ray** — [@KRMILAN](https://github.com/krmilan)
 
 Built as a portfolio project to demonstrate full-stack TypeScript development, RESTful API design, relational database modeling, JWT authentication, and AI integration.
 
