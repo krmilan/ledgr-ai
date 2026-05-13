@@ -2,6 +2,7 @@
 // We separate this from index.ts so we can import just the app in tests
 // without starting the server. This is a standard testing pattern.
 
+import demoRouter from "./routes/demo";
 import aiRouter from "./routes/ai";
 import budgetsRouter from "./routes/budgets";
 import { generalLimiter } from "./middleware/rateLimiter";
@@ -76,6 +77,7 @@ app.use("/api/users", usersRouter);
 app.use("/api/transactions", transactionsRouter);
 app.use("/api/budgets", budgetsRouter);
 app.use("/api/ai", aiRouter);
+app.use("/api/demo", demoRouter);
 
 
 // ─── 404 Handler ─────────────────────────────────────────────────────

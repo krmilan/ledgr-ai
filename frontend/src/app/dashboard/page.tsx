@@ -1,5 +1,6 @@
 "use client";
 
+import DemoDataButton from "@/components/DemoDataButton";
 import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { TrendingUp, TrendingDown, Wallet, Receipt, ChevronLeft, ChevronRight, Sparkles, RefreshCw, ArrowUpRight, ArrowDownLeft } from "lucide-react";
@@ -118,13 +119,20 @@ export default function DashboardPage() {
   return (
     <div style={{ maxWidth: "1200px" }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
-        <div>
-          <h1 style={{ fontSize: "22px", fontWeight: 700, color: "white" }}>
-            {greeting()}, {user?.firstName || "there"} 👋
-          </h1>
-          <p style={{ fontSize: "13px", color: "#6b7280", marginTop: "2px" }}>Your financial snapshot</p>
-        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
+          <div>
+            <h1 style={{ fontSize: "22px", fontWeight: 700, color: "white" }}>
+              {greeting()}, {user?.firstName || "there"} 👋
+            </h1>
+            <p style={{ fontSize: "13px", color: "#6b7280", marginTop: "2px" }}>Your financial snapshot</p>
+            {/* Demo button sits under the greeting */}
+            <div style={{ marginTop: "10px" }}>
+              <DemoDataButton
+                hasData={(summary?.transactionCount ?? 0) > 0}
+                onComplete={load}
+              />
+            </div>
+          </div>
         <MonthPicker month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y); }} />
       </div>
 

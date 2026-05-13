@@ -116,6 +116,18 @@ const createApiClient = (getToken: () => Promise<string | null>) => {
         { method: "POST", body: JSON.stringify({ month, year }) }
         ),
     },
+    demo: {
+      seed: () =>
+        fetch_<{ transactionsSeeded: number; budgetsSeeded: number }>(
+          "/api/demo/seed",
+            { method: "POST" }
+        ),
+      clear: () =>
+        fetch_<{ message: string }>(
+         "/api/demo/clear",
+          { method: "DELETE" }
+        ),
+    },
   };
 };
 
