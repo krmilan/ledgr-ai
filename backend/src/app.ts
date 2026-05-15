@@ -18,6 +18,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1); // Trust Render's proxy for accurate IP detection
 
 // ─── CORS Configuration ───────────────────────────────────────────────
 // CORS (Cross-Origin Resource Sharing) controls which domains can call your API.
