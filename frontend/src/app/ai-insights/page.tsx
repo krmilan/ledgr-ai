@@ -130,7 +130,7 @@ export default function AiInsightsPage() {
         <>
           {/* Stats row */}
           {summary && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginBottom: "24px" }}>
               {[
                 { label: "Income",       value: fmt(summary.totalIncome),              color: "#10b981", icon: TrendingUp   },
                 { label: "Expenses",     value: fmt(summary.totalExpenses),            color: "#ef4444", icon: TrendingDown },
@@ -148,7 +148,7 @@ export default function AiInsightsPage() {
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "24px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px", marginBottom: "24px" }}>
             {/* AI Insight card */}
             <div style={{ backgroundColor: "#111118", border: "1px solid #1e1e2e", borderRadius: "12px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
               {/* Card header */}
@@ -259,7 +259,7 @@ export default function AiInsightsPage() {
             <h2 style={{ fontSize: "13px", fontWeight: 600, color: "#9ca3af", marginBottom: "16px" }}>
               💡 General Financial Tips
             </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
               {[
                 { title: "50/30/20 Rule", desc: "Spend 50% on needs, 30% on wants, and save 20% of your income every month.", color: "#10b981" },
                 { title: "Emergency Fund", desc: "Keep 3–6 months of expenses in a liquid savings account for unexpected events.", color: "#3b82f6" },
