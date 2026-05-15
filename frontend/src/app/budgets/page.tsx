@@ -247,7 +247,7 @@ export default function BudgetsPage() {
             {data?.budgetCount ? `${data.budgetCount} budgets for ${MONTHS[month - 1]} ${year}` : "No budgets set"}
           </p>
         </div>
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
           {/* Month picker */}
           <div style={{ display: "flex", alignItems: "center", gap: "8px", backgroundColor: "#111118", border: "1px solid #1e1e2e", borderRadius: "8px", padding: "6px 12px" }}>
             <button onClick={prevMonth} style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", display: "flex" }}>
@@ -289,7 +289,7 @@ export default function BudgetsPage() {
         <>
           {/* Summary strip */}
           {data.budgetCount > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginBottom: "24px" }}>
               {[
                 { label: "TOTAL BUDGETED",  value: `₹${data.totalBudgeted.toLocaleString("en-IN")}`,  color: "#fff" },
                 { label: "TOTAL SPENT",     value: `₹${data.totalSpent.toLocaleString("en-IN")}`,     color: data.totalSpent > data.totalBudgeted ? "#ef4444" : "#fff" },

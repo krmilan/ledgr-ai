@@ -276,7 +276,7 @@ export default function TransactionsPage() {
   return (
     <div style={{ maxWidth: "1100px" }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
         <div>
           <h1 style={{ fontSize: "24px", fontWeight: 700, color: "white" }}>Transactions</h1>
           <p style={{ fontSize: "14px", color: "#6b7280", marginTop: "4px" }}>
@@ -294,7 +294,7 @@ export default function TransactionsPage() {
 
       {/* Stats */}
       {summary && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginBottom: "24px" }}>
           {[
             { label: "INCOME",       value: fmt(summary.totalIncome),              color: "#10b981" },
             { label: "EXPENSES",     value: fmt(summary.totalExpenses),            color: "#ef4444" },
@@ -322,6 +322,7 @@ export default function TransactionsPage() {
         <select value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{
           backgroundColor: "#111118", border: "1px solid #1e1e2e", borderRadius: "8px",
           padding: "10px 14px", fontSize: "14px", color: catFilter ? "white" : "#6b7280", outline: "none",
+          minWidth: "150px",
         }}>
           <option value="">All Categories</option>
           {CATEGORIES.map(c => <option key={c} value={c} style={{ backgroundColor: "#1a1a24" }}>{c}</option>)}
@@ -355,7 +356,7 @@ export default function TransactionsPage() {
 
       {/* Table */}
       {!loading && (
-        <div style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
+        <div style={{ overflowX: "auto", borderRadius: "12px" }}><div style={{ ...cardStyle, padding: 0, overflow: "hidden", minWidth: "600px" }}>
           {txs.length === 0 ? (
             <div style={{ padding: "64px 32px", textAlign: "center" }}>
               <p style={{ fontSize: "32px", marginBottom: "12px" }}>💸</p>
@@ -427,12 +428,12 @@ export default function TransactionsPage() {
               })}
             </>
           )}
-        </div>
+        </div></div>
       )}
 
       {/* Pagination */}
       {totalPages > 1 && !loading && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", flexWrap: "wrap", gap: "12px" }}>
           <p style={{ fontSize: "13px", color: "#6b7280" }}>
             Showing {(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, total)} of {total}
           </p>
