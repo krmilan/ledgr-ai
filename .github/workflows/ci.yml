@@ -58,7 +58,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"  #Next.js 14 requires Node.js 20 or later
 
       - name: Install dependencies
         working-directory: frontend
