@@ -16,10 +16,8 @@ jobs:
     secrets: inherit
 
   # ─── Deploy Backend → Render ─────────────────────────────────────────────────
-  # NOTE: Prisma migrations are intentionally NOT run automatically here.
-  # Supabase free tier blocks port 5432 from external IPs (like GitHub runners).
-  # Run migrations manually before deploying a schema change:
-  #   cd backend && npx prisma migrate deploy
+  # Migrations are run manually (Supabase blocks port 5432 from CI runners).
+  # Run: cd backend && npx prisma migrate deploy
   deploy-backend:
     name: Deploy Backend → Render
     runs-on: ubuntu-latest
@@ -31,30 +29,6 @@ jobs:
           curl -s --fail -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
             -o /dev/null -w "HTTP status: %{http_code}\n"
 
-  # ─── Deploy Frontend → Vercel ────────────────────────────────────────────────
-  deploy-frontend:
-    name: Deploy Frontend → Vercel
-    runs-on: ubuntu-latest
-    needs: ci
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: Deploy to Vercel
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
-          vercel build --prod --token=$VERCEL_TOKEN
-          vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+  # NOTE: Frontend is deployed automatically by Vercel's native Git integration.
+  # No GitHub Actions step needed — Vercel watches the main branch directly.
+  # This avoids env var injection issues with the Vercel CLI.
