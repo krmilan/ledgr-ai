@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
 
-# Never cancel an in-flight deploy — let it finish
 concurrency:
   group: deploy-production
   cancel-in-progress: false
@@ -42,7 +41,8 @@ jobs:
       - name: Run migrations
         working-directory: backend
         env:
-          DATABASE_URL: ${{ secrets.DIRECT_URL }}
+          DATABASE_URL: ${{ secrets.DIRECT_URL }}   # direct port 5432 — DDL needs direct connection
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}     # schema requires both vars to be present
         run: npx prisma migrate deploy
 
   # ─── Deploy Backend → Render ─────────────────────────────────────────────────
@@ -76,7 +76,6 @@ jobs:
         run: npm install -g vercel@latest
 
       - name: Deploy to Vercel
-        working-directory: frontend
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
