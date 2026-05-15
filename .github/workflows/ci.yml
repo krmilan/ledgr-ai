@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_call:  # allows deploy.yml to reuse this workflow
   push:
     branches: [main, develop]
   pull_request:
