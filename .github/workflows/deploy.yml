@@ -15,41 +15,15 @@ jobs:
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
-  # ─── Run Prisma Migrations ──────────────────────────────────────────────────
-  migrate:
-    name: Run Database Migrations
-    runs-on: ubuntu-latest
-    needs: ci
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-
-      - name: Install dependencies
-        working-directory: backend
-        run: npm install
-
-      - name: Generate Prisma client
-        working-directory: backend
-        run: npx prisma generate
-
-      - name: Run migrations
-        working-directory: backend
-        env:
-          DATABASE_URL: ${{ secrets.DIRECT_URL }}   # direct port 5432 — DDL needs direct connection
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}     # schema requires both vars to be present
-        run: npx prisma migrate deploy
-
   # ─── Deploy Backend → Render ─────────────────────────────────────────────────
+  # NOTE: Prisma migrations are intentionally NOT run automatically here.
+  # Supabase free tier blocks port 5432 from external IPs (like GitHub runners).
+  # Run migrations manually before deploying a schema change:
+  #   cd backend && npx prisma migrate deploy
   deploy-backend:
     name: Deploy Backend → Render
     runs-on: ubuntu-latest
-    needs: migrate
+    needs: ci
 
     steps:
       - name: Trigger Render deploy hook
