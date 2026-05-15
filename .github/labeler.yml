@@ -1,0 +1,22 @@
+# .github/labeler.yml
+# Auto-labels PRs based on which paths changed
+
+frontend:
+  - changed-files:
+    - any-glob-to-any-file: "frontend/**"
+
+backend:
+  - changed-files:
+    - any-glob-to-any-file: "backend/**"
+
+database:
+  - changed-files:
+    - any-glob-to-any-file: "backend/prisma/**"
+
+ci/cd:
+  - changed-files:
+    - any-glob-to-any-file: ".github/**"
+
+documentation:
+  - changed-files:
+    - any-glob-to-any-file: "**/*.md"
