@@ -1,7 +1,7 @@
 name: CI
 
 on:
-  workflow_call:  # allows deploy.yml to reuse this workflow
+  workflow_call:  # allows deploy.yml to call this as a reusable workflow
   push:
     branches: [main, develop]
   pull_request:
@@ -59,7 +59,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"  #Next.js 14 requires Node.js 20 or later
+          node-version: "20"  # Next.js 15 requires >=20.9.0
 
       - name: Install dependencies
         working-directory: frontend
