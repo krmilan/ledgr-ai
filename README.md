@@ -16,9 +16,9 @@
 |-----------|-------------|---------|
 | ![Dashboard](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/dashboard.png) | ![Transactions](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/transactions.png) | ![Budgets](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/budgets.png) |
 
-| AI Insights | Profile | Login-Signup |
+| AI Insights | Profile | Login / Sign Up |
 |-------------|---------|--------|
-| ![AI Insights](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/ai-insights.png) | ![Profile](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/profile.png) | ![Mobile](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/login-signup.png) |
+| ![AI Insights](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/ai-insights.png) | ![Profile](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/profile.png) | ![Login](https://raw.githubusercontent.com/krmilan/ledgr-ai/main/docs/login-signup.png) |
 
 ---
 
@@ -29,6 +29,7 @@
 - **Budgets** — Set monthly spending limits per category with real-time progress tracking
 - **AI Insights** — GPT-4o mini powered spending analysis and actionable financial tips
 - **Auto-categorization** — AI automatically categorizes transactions by name
+- **Demo data** — One-click seed with 32 realistic transactions and 8 budgets (safety check prevents overwriting real data)
 - **Authentication** — Secure JWT-based auth via Clerk (sign up, sign in, sign out, profile management)
 - **Responsive** — Mobile-first design with hamburger navigation
 - **Profile** — User profile with account details and Clerk-managed settings
@@ -87,7 +88,7 @@ Browser → Vercel (Next.js) → Render (Express API) → Supabase (PostgreSQL)
 |---------|---------|
 | Vercel | Frontend hosting + CDN |
 | Render | Backend hosting |
-| Supabase | Managed PostgreSQL + connection pooling |
+| Supabase | Managed PostgreSQL + PgBouncer connection pooling |
 | GitHub Actions | CI/CD pipeline |
 
 ---
@@ -147,6 +148,9 @@ POST   /api/ai/categorize           Categorize a transaction name
 
 GET    /health                      Server health check
 GET    /api/health/detailed         Health + database connectivity
+
+POST   /api/demo/seed               Seed 32 demo transactions + 8 budgets
+DELETE /api/demo/clear              Clear all demo data
 ```
 
 All routes except `/health` require `Authorization: Bearer <jwt>` header.
@@ -169,6 +173,51 @@ Implementing secure authentication (password hashing, session management, OAuth,
 
 **Why separate Clerk ID from database UUID?**
 Clerk's `user_2abc...` ID format isn't suitable as a foreign key across millions of rows. Our own UUID is used for all relational data. This also means migrating auth providers only requires updating the sync logic — all data stays intact.
+
+**Why are migrations not automated in CI/CD?**
+Supabase's free tier blocks direct connections on port 5432 from external IP ranges like GitHub Actions runners. Running DDL through PgBouncer (port 6543) is also unsafe — transaction mode doesn't support schema changes. Migrations are a deliberate manual step run locally before deploying schema changes, which is safer than auto-running them on every push anyway.
+
+**Why does the CI pipeline use Node 18 for backend and Node 20 for frontend?**
+Next.js 15 enforces `>=20.9.0` at build time. The Express backend is stable on Node 18 LTS. Running both on the same version would either break the frontend build or use a newer-than-necessary runtime for the backend.
+
+---
+
+## 🐛 Production Bugs Fixed
+
+Real issues encountered and solved during development — each one a learning moment.
+
+| Bug | Symptom | Root Cause | Fix |
+|-----|---------|-----------|-----|
+| PgBouncer prepared statement conflict | `prepared statement already exists` error on first query | PgBouncer's transaction mode doesn't support named prepared statements that Prisma uses by default | Added `?pgbouncer=true` to `DATABASE_URL` to disable prepared statements |
+| Timezone date filtering off by 1 day | Transactions on the 1st of the month missing from monthly summaries | `new Date()` uses local timezone; comparison was inconsistent across environments | Switched to `Date.UTC()` everywhere for consistent UTC-based filtering |
+| Clerk ID vs PostgreSQL UUID mismatch | Auth middleware passing Clerk's `user_2abc...` string as a UUID FK causing DB errors | Clerk IDs are not UUIDs — cannot be used directly as PostgreSQL foreign keys | Built `resolveDbUserId()` helper that looks up our internal UUID from the Clerk ID on every request |
+| Prisma namespace types crashing on Render | `TypeError: Cannot read properties of undefined` in production only | Prisma's namespace types (`Prisma.TransactionGetPayload`) not available after build on Render | Replaced all Prisma namespace types with plain TypeScript object types |
+| `prisma generate` missing from Render build | Prisma client not found error on first deploy | Render's build command only ran `npm run build` — Prisma client must be generated before TypeScript compilation | Added `npx prisma generate` to the Render build command |
+| CORS blocking Vercel preview URLs | API calls failing from Vercel preview deployments (e.g. `ledgr-ai-xxx.vercel.app`) | CORS was configured with an exact origin match — preview URLs are dynamic and unpredictable | Switched to regex pattern matching on origin (`/vercel\.app$/`) instead of exact string comparison |
+| Recharts formatter type error on Vercel build | TypeScript build failing only in CI, not locally | Recharts `formatter` prop expects a specific callback signature; local TS was lenient, Vercel's strict build caught it | Fixed the TypeScript type annotation on the formatter callback |
+| Rate limiter `X-Forwarded-For` warning | `ERR_ERL_UNEXPECTED_X_FORWARDED_FOR` in Render logs | Render sits behind a reverse proxy — Express didn't know to trust the forwarded IP headers, so rate limiter couldn't identify real client IPs | Added `app.set('trust proxy', 1)` in `app.ts` |
+| Vercel internal server error on production URL | `Internal Server Error` on `ledgr-ai-frontend.vercel.app` only; preview URLs worked fine | GitHub Actions was deploying to Vercel via CLI (`vercel deploy --prod`) which created a production deployment without the env vars set in Vercel's dashboard | Removed CLI deploy from GitHub Actions; Vercel's native Git integration handles frontend deploys automatically and reads env vars correctly |
+| GitHub Actions cache path failure | `Some specified paths were not resolved, unable to cache dependencies` | `cache-dependency-path` pointed to lockfiles that didn't exist in the CI environment | Removed `cache-dependency-path` and switched from `npm ci` to `npm install` |
+| `workflow_call` missing from CI workflow | `deploy.yml` failing with "workflow is not reusable" error | `ci.yml` was missing the `on: workflow_call` trigger required for another workflow to call it | Added `workflow_call` trigger to `ci.yml` |
+
+---
+
+## ⚙️ CI/CD Pipeline
+
+```
+Push to main
+    ↓
+CI Gate — lint + typecheck + build (backend Node 18, frontend Node 20)
+    ↓
+Deploy Backend → Render (via deploy hook)
+Frontend → auto-deployed by Vercel Git integration
+```
+
+**On every PR:** CI runs automatically — catches type errors and broken builds before merge.
+
+**On push to main:** CI gate must pass before any deployment triggers.
+
+**Migrations:** Run manually (`cd backend && npx prisma migrate deploy`) — not automated due to Supabase network restrictions on CI runners.
 
 ---
 
@@ -247,9 +296,9 @@ Frontend runs on `http://localhost:3000`
 
 | Service | Platform | Config |
 |---------|----------|--------|
-| Frontend | Vercel | Root: `frontend/`, auto-deploys on push to `main` |
+| Frontend | Vercel | Root: `frontend/`, auto-deploys on push to `main` via Git integration |
 | Backend | Render | Root: `backend/`, Build: `npm install --include=dev && npx prisma generate && npm run build` |
-| Database | Supabase | PostgreSQL with PgBouncer connection pooling |
+| Database | Supabase | PostgreSQL with PgBouncer — use port 6543 for app, port 5432 for migrations |
 
 ---
 
