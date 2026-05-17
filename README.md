@@ -8,6 +8,12 @@
 [![Backend API](https://img.shields.io/badge/Backend%20API-Render-6366f1?style=for-the-badge)](https://ledgr-ai-backend.onrender.com/health)
 [![GitHub](https://img.shields.io/badge/Source%20Code-GitHub-1e1e2e?style=for-the-badge&logo=github)](https://github.com/krmilan/ledgr-ai)
 
+## 🔑 Demo Access
+**Email:** demo@ledgr.ai
+**Password:** demo2026@
+> Once signed in, hit "Load Demo Data" to seed the 32 transactions + 8 budgets
+> ⚠️ First load may take 30–60 seconds (Render free tier cold start). Fully functional once the API wakes up.
+
 ---
 
 ## 📸 Screenshots
